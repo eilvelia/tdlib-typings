@@ -1,0 +1,14 @@
+[ignore]
+<PROJECT_ROOT>/dist/
+
+[include]
+
+[libs]
+
+[lints]
+
+[options]
+module.use_strict=true
+module.name_mapper='^fluture$' -> '<PROJECT_ROOT>/flow/fluture'
+
+[strict]

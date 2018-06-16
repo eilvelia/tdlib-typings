@@ -1,0 +1,30 @@
+{
+  "name": "tdlib-typings",
+  "version": "0.2.0",
+  "description": "Flow and TypeScript typings for TDLib",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Bannerets <save14@protonmail.com>",
+  "license": "MIT",
+  "keywords": [
+    "tdl",
+    "tdlib",
+    "typings",
+    "types",
+    "flow",
+    "flowtype",
+    "typescript",
+    "ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bannerets/tdlib-typings.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Bannerets/tdlib-typings/issues"
+  },
+  "homepage": "https://github.com/Bannerets/tdlib-typings#readme"
+}

@@ -1,0 +1,2 @@
+*.flow linguist-language=JavaScript
+*.h linguist-detectable=false

@@ -1,0 +1,28 @@
+{
+  "name": "tdlib-typings-dev",
+  "version": "0.0.0",
+  "description": "",
+  "main": "dist/flow.js",
+  "scripts": {
+    "clean": "rimraf dist/",
+    "flow": "flow check",
+    "build": "babel src/ -d dist/",
+    "test": "npm run flow",
+    "prepare": "npm run clean && npm run build",
+    "prepack": "npm test",
+    "start": "npm run build && node dist"
+  },
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-flow": "^6.23.0",
+    "flow-bin": "^0.66.0",
+    "rimraf": "^2.6.2"
+  },
+  "author": "Bannerets <save14@protonmail.com>",
+  "license": "MIT"
+}
