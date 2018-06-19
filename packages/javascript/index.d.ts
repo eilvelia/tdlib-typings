@@ -1,3 +1,5 @@
+// TDLib 1.2.0
+
 export type accountTtl = {
   _: 'accountTtl',
   days: number,
