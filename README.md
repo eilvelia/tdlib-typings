@@ -16,7 +16,7 @@ npm run build
 #### Flow
 
 ```console
-$ node dist/flow > filename.js
+$ node dist > filename.js
 ```
 
 #### TypeScript

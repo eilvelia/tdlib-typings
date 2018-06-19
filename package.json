@@ -2,7 +2,7 @@
   "name": "tdlib-typings-dev",
   "version": "0.0.0",
   "description": "",
-  "main": "dist/flow.js",
+  "main": "dist/index.js",
   "scripts": {
     "clean": "rimraf dist/",
     "flow": "flow check",
