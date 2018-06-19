@@ -12,7 +12,10 @@ import {
   type TdBaseClass
 } from './base'
 
-const filepath = process.argv[2] || 'td__api_8.h'
+const arg = process.argv[2]
+const filepath = (arg !== '--ts' && arg) || 'td__api_8.h'
+
+const TS = process.argv.includes('--ts')
 
 const source = fs.readFileSync(filepath).toString()
 
@@ -34,17 +37,17 @@ const { tdClasses, baseClasses } = parseSource(source)
 
 const classesStr = tdClasses
   .map(cl => [
-    `export type ${cl.name} = {${isTdFunction(cl) ? '|' : ''}\n`,
+    `export type ${cl.name} = {${(isTdFunction(cl) && !TS) ? '|' : ''}\n`,
     //`export type ${cl.name} = {\n`,
       createParams(cl, isTdFunction(cl)),
-    `\n${isTdFunction(cl) ? '|' : ''}}`,
+    `\n${(isTdFunction(cl) && !TS) ? '|' : ''}}`,
     //`\n}\n\n`,
     //`export type ${cl.name}Optional = { ...$Shape<${cl.name}>, _: '${cl.name}' }`),
     isTdFunction(cl)
       ? ''
-      : (`\n\nexport type ${cl.name}Optional = {|\n` +
+      : (`\n\nexport type ${cl.name}Optional = {${TS ? '' : '|'}\n` +
           createParams(cl, true) +
-        '\n|}'),
+        `\n${TS ? '' : '|'}}`),
     (cl.returnType
       ? `\n\nexport type ${cl.name}ReturnType = ${cl.returnType}`
       : '')
@@ -53,8 +56,10 @@ const classesStr = tdClasses
 
 const inheritedByMap = makeInheritedByMap(tdClasses, baseClasses)
 
-console.log('// @flow')
-console.log()
+if (!TS) {
+  console.log('// @flow')
+  console.log()
+}
 console.log(classesStr)
 
 console.log()
@@ -119,7 +124,9 @@ console.log()
 console.log('/*')
 
 console.log('// Future<Left, Right>')
-console.log('import type { Future } from \'fluture\'')
+console.log(!TS
+  ? 'import type { Future } from \'fluture\''
+  : 'import { Future } from \'fluture\'')
 console.log()
 console.log(createInvokeFutureType(tdClasses))
 

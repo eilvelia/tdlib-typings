@@ -1,17 +1,20 @@
 ## tdlib-typings
 
-Generates Flow typings from `td_api.h` file.
-
-WIP
+Generates Flow and TypeScript typings from `td_api.h` file.
 
 ### Installation
 
 ```sh
 git clone https://github.com/Bannerets/tdlib-typings.git tdlib-typings
+npm install
 npm run build
 ```
 
 ### Usage
+
+```console
+$ node dist [path/to/td_api/file]
+```
 
 #### Flow
 
@@ -21,4 +24,6 @@ $ node dist > filename.js
 
 #### TypeScript
 
-WIP
+```console
+$ node dist --ts > filename.ts
+```
