@@ -4,7 +4,11 @@
 
 Flow and TypeScript typings for TDLib.
 
-WIP
+## Installation
+
+```console
+$ npm i tdlib-typings
+```
 
 ## Usage
 

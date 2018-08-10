@@ -1,6 +1,8 @@
 ## tdlib-typings
 
-Generates Flow and TypeScript typings from `td_api.h` file.
+Generates Flow and TypeScript typings from `td_api.tl` file.
+
+---
 
 ### Installation
 
@@ -13,7 +15,7 @@ npm run build
 ### Usage
 
 ```console
-$ node dist [path/to/td_api/file]
+$ node dist [path/to/tl/file]
 ```
 
 #### Flow

@@ -7,5 +7,5 @@ dist/
 flow-typed/npm/
 package-lock.json
 yarn.lock
-/test.js
-/test.ts
+/*.js
+/*.ts

@@ -13,7 +13,9 @@
     "start": "npm run build && node dist"
   },
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "tldoc": "^0.2.0"
+  },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-plugin-transform-class-properties": "^6.24.1",
@@ -24,5 +26,13 @@
     "rimraf": "^2.6.2"
   },
   "author": "Bannerets <save14@protonmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bannerets/tdlib-typings.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Bannerets/tdlib-typings/issues"
+  },
+  "homepage": "https://github.com/Bannerets/tdlib-typings#readme"
 }
