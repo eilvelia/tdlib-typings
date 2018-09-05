@@ -8,7 +8,7 @@ const arg = process.argv[2]
 const filepath = (arg !== '--ts' && arg) || 'td_api.tl'
 const TS = process.argv.includes('--ts')
 
-const VERSION = '1.2.0'
+const VERSION = '1.3.0'
 
 const source = fs.readFileSync(filepath).toString()
 
