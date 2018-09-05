@@ -11,6 +11,7 @@ const TS = process.argv.includes('--ts')
 const VERSION = '1.3.0'
 
 const source = fs.readFileSync(filepath).toString()
+  .replace(/^ *vector.+$/mg, '') // XXX
 
 // console.log(JSON.stringify(tldoc(source), null, '  '))
 
