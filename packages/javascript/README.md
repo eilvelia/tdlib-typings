@@ -4,6 +4,8 @@
 
 Flow and TypeScript typings for TDLib.
 
+TDLib version: 1.3.0
+
 ## Installation
 
 ```console
