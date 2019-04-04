@@ -5,10 +5,28 @@ import { EOL } from 'os'
 import { tldoc, type Parameter, type TdClass } from 'tldoc'
 
 const arg = process.argv[2]
-const filepath = (arg !== '--ts' && arg) || 'td_api.tl'
+const filepath = (arg !== '--ts' && arg !== '--no-fl' && arg) || 'td_api.tl'
 const TS = process.argv.includes('--ts')
+const commentFluture = process.argv.includes('--no-fl')
+const usage = process.argv.includes('--usage')
+const help = process.argv.includes('--help')
+
+if (usage || help) {
+  console.log(`$ ./bin [filename] [--ts] [--no-fl]`)
+  console.log('Options:')
+  console.log('  --ts: Emit TypeScript instead of Flow')
+  console.log('  --no-fl: Comment \'InvokeFuture\' function type')
+  process.exit()
+}
 
 const VERSION = '1.3.0'
+
+const INPUT_SUFFIX = '$Input'
+const ARRAY_TYPE = 'Array'
+const INPUT_ARRAY_TYPE = TS ? 'ReadonlyArray' : '$ReadOnlyArray'
+
+const readOnly = TS ? 'readonly ' : '+'
+const exact = TS ? '' : '|'
 
 const source = fs.readFileSync(filepath).toString()
   .replace(/^ *vector.+$/mg, '') // XXX
@@ -21,29 +39,81 @@ const baseClassesDesc = baseClasses
   .reduce((acc, { name, description }) =>
     acc.set(name, description), (new Map(): Map<string, string>))
 
+type JSType =
+  | {| type: 'Plain', str: string |} // Plain type
+  | {| type: 'UnaryConstr', constr: string, arg: JSType |} // Unary type constructor
+  | {| type: 'Union', types: JSType[] |} // Union type
+
+const PlainType = (str: string): JSType =>
+  ({ type: 'Plain', str })
+const UnaryConstr = (constr: string, arg: JSType): JSType =>
+  ({ type: 'UnaryConstr', constr, arg })
+const UnionType = (types: JSType[]): JSType =>
+  ({ type: 'Union', types })
+
+const showType = (jstype: JSType): string => {
+  switch (jstype.type) {
+    case 'Plain': return jstype.str
+    case 'UnaryConstr': return `${jstype.constr}<${showType(jstype.arg)}>`
+    case 'Union': return jstype.types.map(showType).join(' | ')
+    default: return (jstype: empty)
+  }
+}
+
 type JSParameter = {
   name: string,
-  type: string,
+  type: JSType,
   description: string
 }
 
-function paramaterTypeToJS ({ vector, type }: Parameter): string {
-  const f = str => str + '[]'.repeat(vector)
+type JSObject = {
+  name: string,
+  params: JSParameter[],
+  description: string
+}
+
+function parameterTypeToJS ({ vector, type }: Parameter): JSType {
+  const aux = (jstype, n) => n <= 0
+    ? jstype
+    : aux(UnaryConstr(ARRAY_TYPE, jstype), n - 1)
+  const f = str => aux(PlainType(str), vector)
+  const fu = strs => aux(UnionType(strs.map(PlainType)), vector)
   switch (type) {
     case 'double': return f('number')
     case 'string': return f('string')
     case 'int32': return f('number')
     case 'int53': return f('number')
-    case 'int64': return f('(number | string)')
+    case 'int64': return fu(['number', 'string'])
     case 'Bool': return f('boolean')
     case 'bytes': return f('string')
     default: return f(type)
   }
 }
 
+const primitiveTypes = ['string', 'number', 'boolean']
+
+const outputToInputType = (jstype: JSType): JSType => {
+  switch (jstype.type) {
+    case 'Plain':
+      const { str } = jstype
+      const newStr = primitiveTypes.includes(str) ? str : str + INPUT_SUFFIX
+      return PlainType(newStr)
+    case 'UnaryConstr':
+      const { constr, arg } = jstype
+      const newConstr = constr === ARRAY_TYPE ? INPUT_ARRAY_TYPE : constr
+      const newArg = outputToInputType(arg)
+      return UnaryConstr(newConstr, newArg)
+    case 'Union':
+      const { types } = jstype
+      const newTypes = types.map(outputToInputType)
+      return UnionType(newTypes)
+    default: return (jstype: empty)
+  }
+}
+
 const parameterToJS = (param: Parameter): JSParameter => ({
   name: param.name,
-  type: paramaterTypeToJS(param),
+  type: parameterTypeToJS(param),
   description: param.description
 })
 
@@ -78,29 +148,34 @@ const addIdent = (n: number, str: string) => str
   .map(e => ' '.repeat(n) + e)
   .join(EOL)
 
-const primitiveTypes = ['string', 'number', 'boolean', '(number | string)']
-const addOptional = (str: string) => {
-  let vector = 0
-  const withoutArr =
-    str.replace(/\[\]/g, () => { vector++; return '' })
-  return primitiveTypes.includes(withoutArr)
-    ? str
-    : withoutArr + 'Optional' + '[]'.repeat(vector)
-}
+const o = (x: boolean, str = INPUT_SUFFIX) => x ? str : ''
 
-const o = (x: boolean, str = 'Optional') => x ? str : ''
-
-const createObjectType = (name, description, params, opt = false, optName = false) =>
+const createObjectType = ({ name, description, params }: JSObject) =>
   [
     description && formatDesc(description),
-    `export type ${name}${o(optName)} = {` + o(opt && !TS, '|'),
+    `export type ${name} = {${exact}`,
     `  _: '${name}',`,
     params
       .map(({ description, name, type }) =>
         addIdent(2, formatDesc(description)) + EOL
-        + `  ${name}${o(opt, '?')}: ${opt ? addOptional(type) : type},`)
+        + `  ${name}: ${showType(type)},`)
       .join(EOL),
-    o(opt && !TS, '|') + '}'
+    exact + '}'
+  ]
+  .filter(Boolean)
+  .join(EOL)
+
+const createInputObjectType = ({ name, description, params }, inpName = false) =>
+  [
+    description && formatDesc(description),
+    `export type ${name}${o(inpName)} = {${exact}`,
+    `  ${readOnly}_: '${name}',`,
+    params
+      .map(({ description, name, type }) =>
+        addIdent(2, formatDesc(description)) + EOL
+        + `  ${readOnly}${name}?: ${showType(outputToInputType(type))},`)
+      .join(EOL),
+    exact + '}'
   ]
   .filter(Boolean)
   .join(EOL)
@@ -109,13 +184,13 @@ const createUnion = (
   typename: string,
   types: string[],
   description?: string,
-  opt: boolean = false
+  input: boolean = false
 ): string =>
   [
     description && formatDesc(description),
-    `export type ${typename}${o(opt)} =`,
+    `export type ${typename}${o(input)} =`,
     types
-      .map(name => `  | ${name}${o(opt)}`)
+      .map(name => `  | ${name}${o(input)}`)
       .join(EOL)
   ]
   .filter(Boolean)
@@ -123,13 +198,13 @@ const createUnion = (
 
 const createFunctionType = (
   name: string,
-  pattern: string,
+  getReturnType: (typestr: string) => string,
   classes: TdClass[]
 ): string =>
   `export type ${name} =\n` +
   classes
     .map(({ name, result }) =>
-      `  & ((query: ${name}) => ${pattern.replace('{name}', result)})`)
+      `  & ((query: ${name}) => ${getReturnType(result)})`)
     .join(EOL)
 
 const createUnions = classes => {
@@ -168,13 +243,12 @@ const uniq = list => {
 const objects = classes
   .map(cl => {
     const params = cl.parameters.map(parameterToJS)
+    const jsobj: JSObject = { name: cl.name, description: cl.description, params }
     if (cl.kind === 'function')
-      return createObjectType(cl.name, cl.description, params, true)
-    const str =
-      createObjectType(cl.name, cl.description, params)
-    const strOptional =
-      createObjectType(cl.name, cl.description, params, true, true)
-    return [str, '', strOptional].join(EOL)
+      return createInputObjectType(jsobj)
+    const str = createObjectType(jsobj)
+    const strInput = createInputObjectType(jsobj, true)
+    return [str, '', strInput].join(EOL)
   })
   .join(EOL + EOL)
 
@@ -186,14 +260,14 @@ const baseClassNames = uniq(classes.map(e => e.result))
 
 const functionUnion = createUnion('TDFunction', funcs.map(e => e.name))
 const objectUnion = createUnion('TDObject', baseClassNames)
-const objectOptUnion = createUnion('TDObject', baseClassNames, '', true)
+const objectInputUnion = createUnion('TDObject', baseClassNames, '', true)
 
 const invoke =
-  createFunctionType('Invoke', 'Promise<{name}>', funcs)
+  createFunctionType('Invoke', t => `Promise<${t}>`, funcs)
 const execute =
-  createFunctionType('Execute', '{name} | error | null', funcs)
+  createFunctionType('Execute', t => `${t} | error | null`, funcs)
 const invokeFuture =
-  createFunctionType('InvokeFuture', 'Future<error, {name}>', funcs)
+  createFunctionType('InvokeFuture', t => `Future<error, ${t}>`, funcs)
 
 const { log } = console
 
@@ -213,7 +287,7 @@ log(functionUnion)
 log()
 log(objectUnion)
 log()
-log(objectOptUnion)
+log(objectInputUnion)
 log()
 log('// ----')
 log()
@@ -221,14 +295,16 @@ log(invoke)
 log()
 log(execute)
 log()
-log('/*')
+if (commentFluture)
+  log('/*')
 log('// Future<Left, Right>')
 log(!TS
   ? 'import type { Future } from \'fluture\''
   : 'import { Future } from \'fluture\'')
 log()
 log(invokeFuture)
-log('*/')
+if (commentFluture)
+  log('*/')
 
 // console.log(`
 // type $DeepShape<T: Object> = $Shape<
