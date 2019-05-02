@@ -19,7 +19,7 @@ if (usage || help) {
   process.exit()
 }
 
-const VERSION = '1.3.0'
+const VERSION = '1.4.0'
 
 const INPUT_SUFFIX = '$Input'
 const ARRAY_TYPE = 'Array'
